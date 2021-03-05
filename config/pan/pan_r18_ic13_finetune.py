@@ -32,16 +32,16 @@ model = dict(
 data = dict(
     batch_size=16,
     train=dict(
-        type='PAN_MSRA',
+        type='PAN_IC13',
         split='train',
         is_transform=True,
         img_size=736,
         short_size=736,
-        kernel_scale=0.7,
+        kernel_scale=0.5,
         read_type='cv2'
     ),
     test=dict(
-        type='PAN_MSRA',
+        type='PAN_IC13',
         split='test',
         short_size=736,
         read_type='cv2'
@@ -55,8 +55,8 @@ train_cfg = dict(
     pretrain='checkpoints/pan_r18_synth/checkpoint_1ep.pth.tar'
 )
 test_cfg = dict(
-    min_score=0.86,
+    min_score=0.85,
     min_area=16,
     bbox_type='rect',
-    result_path='outputs/submit_msra/'
+    result_path='outputs/submit_ic13.zip'
 )

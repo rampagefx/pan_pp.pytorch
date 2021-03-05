@@ -13,11 +13,11 @@ import scipy.io as scio
 import mmcv
 from mmcv.parallel import DataContainer as DC
 
-ic15_root_dir = './data/ICDAR2015/Challenge4/'
-ic15_train_data_dir = ic15_root_dir + 'ch4_training_images/'
-ic15_train_gt_dir = ic15_root_dir + 'ch4_training_localization_transcription_gt/'
-ic15_test_data_dir = ic15_root_dir + 'ch4_test_images/'
-ic15_test_gt_dir = ic15_root_dir + 'ch4_test_localization_transcription_gt/'
+ic15_root_dir = '../dataset/ICDAR2015/'
+ic15_train_data_dir = ic15_root_dir + 'train_images/'
+ic15_train_gt_dir = ic15_root_dir + 'train_gts/'
+ic15_test_data_dir = ic15_root_dir + 'test_images/'
+ic15_test_gt_dir = ic15_root_dir + 'test_gts/'
 
 
 def get_img(img_path, read_type='pil'):

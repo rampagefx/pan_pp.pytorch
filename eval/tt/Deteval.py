@@ -1,37 +1,36 @@
 from os import listdir
 from scipy import io
 import numpy as np
-# from skimage.draw import polygon
-# from polygon_wrapper import iou
+# mask counting version
 # from polygon_wrapper import iod
 # from polygon_wrapper import area_of_intersection
 # from polygon_wrapper import area
 
-import Polygon as plg
+# polygon based version
+from polygon_fast import iod
+from polygon_fast import area_of_intersection
+from polygon_fast import area
+from tqdm import tqdm
+
+try: # python2
+    range = xrange
+except Exception:
+    # python3
+    range = range
 
 """
 Input format: y0,x0, ..... yn,xn. Each detection is separated by the end of line token ('\n')'
 """
+
 project_root = '../../'
 
-input_dir = project_root + 'outputs/submit_tt/'
-gt_dir = project_root + 'data/total_text/Groundtruth/Polygon/Test/'
-fid_path = project_root + 'outputs/res_tt.txt'
+input_dir = project_root + 'outputs/submit_tt/' #detection directory goes here
+gt_dir =  '../../../dataset/TotalText/Groundtruth/Text/mat_GT/Polygon/Test/' #gt directory goes here
+fid_path = project_root + 'outputs/res_tt.txt' #output text file directory goes here
 
 allInputs = listdir(input_dir)
 
 
-def get_union(pD, pG):
-    areaA = pD.area()
-    areaB = pG.area()
-    return areaA + areaB - get_intersection(pD, pG)
-
-
-def get_intersection(pD, pG):
-    pInt = pD & pG
-    if len(pInt) == 0:
-        return 0
-    return pInt.area()
 
 
 def input_reading_mod(input_dir, input):
@@ -53,61 +52,32 @@ def gt_reading_mod(gt_dir, gt_id):
 def detection_filtering(detections, groundtruths, threshold=0.5):
     for gt_id, gt in enumerate(groundtruths):
         if (gt[5] == '#') and (gt[1].shape[1] > 1):
-            gt_x = map(int, np.squeeze(gt[1]))
-            gt_y = map(int, np.squeeze(gt[3]))
-
-            gt_p = np.concatenate((np.array(gt_x), np.array(gt_y)))
-            gt_p = gt_p.reshape(2, -1).transpose()
-            gt_p = plg.Polygon(gt_p)
-
+            gt_x = list(map(int, np.squeeze(gt[1])))
+            gt_y = list(map(int, np.squeeze(gt[3])))
             for det_id, detection in enumerate(detections):
                 detection = detection.split(',')
-                # detection = map(int, detection[0:-1])
-                detection = map(int, detection)
+                detection = list(map(int, detection))
                 det_y = detection[0::2]
                 det_x = detection[1::2]
-
-                det_p = np.concatenate((np.array(det_x), np.array(det_y)))
-                det_p = det_p.reshape(2, -1).transpose()
-                det_p = plg.Polygon(det_p)
-
-                try:
-                    # det_gt_iou = iod(det_x, det_y, gt_x, gt_y)
-                    det_gt_iou = get_intersection(det_p, gt_p) / det_p.area()
-                except:
-                    print(det_x, det_y, gt_x, gt_y)
+                det_gt_iou = iod(det_x, det_y, gt_x, gt_y)
                 if det_gt_iou > threshold:
                     detections[det_id] = []
 
             detections[:] = [item for item in detections if item != []]
     return detections
 
-
-# def sigma_calculation(det_x, det_y, gt_x, gt_y):
-#     """
-#     sigma = inter_area / gt_area
-#     """
-#     return np.round((area_of_intersection(det_x, det_y, gt_x, gt_y) / area(gt_x, gt_y)), 2)
-
-# def tau_calculation(det_x, det_y, gt_x, gt_y):
-#     """
-#     tau = inter_area / det_area
-#     """
-#     return np.round((area_of_intersection(det_x, det_y, gt_x, gt_y) / area(det_x, det_y)), 2)
-
-def sigma_calculation(det_p, gt_p):
+def sigma_calculation(det_x, det_y, gt_x, gt_y):
     """
     sigma = inter_area / gt_area
     """
-    # return np.round((area_of_intersection(det_x, det_y, gt_x, gt_y) / area(gt_x, gt_y)), 2)
-    return get_intersection(det_p, gt_p) / gt_p.area()
+    # print(area_of_intersection(det_x, det_y, gt_x, gt_y))
+    return np.round((area_of_intersection(det_x, det_y, gt_x, gt_y) / area(gt_x, gt_y)), 2)
 
-
-def tau_calculation(det_p, gt_p):
+def tau_calculation(det_x, det_y, gt_x, gt_y):
     """
     tau = inter_area / det_area
     """
-    return get_intersection(det_p, gt_p) / det_p.area()
+    return np.round((area_of_intersection(det_x, det_y, gt_x, gt_y) / area(det_x, det_y)), 2)
 
 
 ##############################Initialization###################################
@@ -122,12 +92,12 @@ fsc_k = 0.8
 k = 2
 ###############################################################################
 
-
-for input_id in allInputs:
-    if (input_id != '.DS_Store'):
-        print('input_id', input_id)
+for input_id in tqdm(allInputs):
+    if (input_id != '.DS_Store') and (input_id != 'Pascal_result.txt') and (
+            input_id != 'Pascal_result_curved.txt') and (input_id != 'Pascal_result_non_curved.txt') and (input_id != 'Deteval_result.txt') and (input_id != 'Deteval_result_curved.txt') \
+            and (input_id != 'Deteval_result_non_curved.txt'):
+        # print(input_id)
         detections = input_reading_mod(input_dir, input_id)
-        # from IPython import embed;
         groundtruths = gt_reading_mod(gt_dir, input_id)
         detections = detection_filtering(detections, groundtruths)  # filters detections overlapping with DC area
         dc_id = np.where(groundtruths[:, 5] == '#')
@@ -140,40 +110,15 @@ for input_id in allInputs:
             if len(detections) > 0:
                 for det_id, detection in enumerate(detections):
                     detection = detection.split(',')
-                    # print (len(detection))
-
-                    # detection = map(int, detection[:-1])
-                    detection = map(int, detection)
-                    # print (len(detection))
-
-                    # from IPython import embed;embed()
-                    # detection = list(detection)
-                    gt_x = map(int, np.squeeze(gt[1]))
-                    gt_y = map(int, np.squeeze(gt[3]))
-
-                    gt_p = np.concatenate((np.array(gt_x), np.array(gt_y)))
-                    gt_p = gt_p.reshape(2, -1).transpose()
-                    gt_p = plg.Polygon(gt_p)
-
+                    detection = list(map(int, detection))
                     det_y = detection[0::2]
                     det_x = detection[1::2]
+                    gt_x = list(map(int, np.squeeze(gt[1])))
+                    gt_y = list(map(int, np.squeeze(gt[3])))
 
-                    det_p = np.concatenate((np.array(det_x), np.array(det_y)))
-                    # print (det_p.shape)
-                    det_p = det_p.reshape(2, -1).transpose()
-                    det_p = plg.Polygon(det_p)
+                    local_sigma_table[gt_id, det_id] = sigma_calculation(det_x, det_y, gt_x, gt_y)
+                    local_tau_table[gt_id, det_id] = tau_calculation(det_x, det_y, gt_x, gt_y)
 
-                    # gt_x = list(map(int, np.squeeze(gt[1])))
-                    # gt_y = list(map(int, np.squeeze(gt[3])))
-                    # try:
-                    #     local_sigma_table[gt_id, det_id] = sigma_calculation(det_x, det_y, gt_x, gt_y)
-                    #     local_tau_table[gt_id, det_id] = tau_calculation(det_x, det_y, gt_x, gt_y)
-                    # except:
-                    #     embed()
-                    local_sigma_table[gt_id, det_id] = sigma_calculation(det_p, gt_p)
-                    local_tau_table[gt_id, det_id] = tau_calculation(det_p, gt_p)
-        # if input_id == 'img1199.txt':
-        #    embed()
         global_sigma.append(local_sigma_table)
         global_tau.append(local_tau_table)
 
@@ -186,13 +131,20 @@ total_num_det = 0
 def one_to_one(local_sigma_table, local_tau_table, local_accumulative_recall,
                local_accumulative_precision, global_accumulative_recall, global_accumulative_precision,
                gt_flag, det_flag):
-    for gt_id in xrange(num_gt):
-        qualified_sigma_candidates = np.where(local_sigma_table[gt_id, :] > tr)
-        num_qualified_sigma_candidates = qualified_sigma_candidates[0].shape[0]
-        qualified_tau_candidates = np.where(local_tau_table[gt_id, :] > tp)
-        num_qualified_tau_candidates = qualified_tau_candidates[0].shape[0]
+    for gt_id in range(num_gt):
+        gt_matching_qualified_sigma_candidates = np.where(local_sigma_table[gt_id, :] > tr)
+        gt_matching_num_qualified_sigma_candidates = gt_matching_qualified_sigma_candidates[0].shape[0]
+        gt_matching_qualified_tau_candidates = np.where(local_tau_table[gt_id, :] > tp)
+        gt_matching_num_qualified_tau_candidates = gt_matching_qualified_tau_candidates[0].shape[0]
 
-        if (num_qualified_sigma_candidates == 1) and (num_qualified_tau_candidates == 1):
+        det_matching_qualified_sigma_candidates = np.where(local_sigma_table[:, gt_matching_qualified_sigma_candidates[0]] > tr)
+        det_matching_num_qualified_sigma_candidates = det_matching_qualified_sigma_candidates[0].shape[0]
+        det_matching_qualified_tau_candidates = np.where(local_tau_table[:, gt_matching_qualified_tau_candidates[0]] > tp)
+        det_matching_num_qualified_tau_candidates = det_matching_qualified_tau_candidates[0].shape[0]
+
+
+        if (gt_matching_num_qualified_sigma_candidates == 1) and (gt_matching_num_qualified_tau_candidates == 1) and \
+                (det_matching_num_qualified_sigma_candidates == 1) and (det_matching_num_qualified_tau_candidates == 1):
             global_accumulative_recall = global_accumulative_recall + 1.0
             global_accumulative_precision = global_accumulative_precision + 1.0
             local_accumulative_recall = local_accumulative_recall + 1.0
@@ -203,12 +155,11 @@ def one_to_one(local_sigma_table, local_tau_table, local_accumulative_recall,
             det_flag[0, matched_det_id] = 1
     return local_accumulative_recall, local_accumulative_precision, global_accumulative_recall, global_accumulative_precision, gt_flag, det_flag
 
-
 def one_to_many(local_sigma_table, local_tau_table, local_accumulative_recall,
-                local_accumulative_precision, global_accumulative_recall, global_accumulative_precision,
-                gt_flag, det_flag):
-    for gt_id in xrange(num_gt):
-        # skip the following if the groundtruth was matched
+               local_accumulative_precision, global_accumulative_recall, global_accumulative_precision,
+               gt_flag, det_flag):
+    for gt_id in range(num_gt):
+        #skip the following if the groundtruth was matched
         if gt_flag[0, gt_id] > 0:
             continue
 
@@ -221,9 +172,8 @@ def one_to_many(local_sigma_table, local_tau_table, local_accumulative_recall,
             num_qualified_tau_candidates = qualified_tau_candidates[0].shape[0]
 
             if num_qualified_tau_candidates == 1:
-                if ((local_tau_table[gt_id, qualified_tau_candidates] >= tp) and (
-                        local_sigma_table[gt_id, qualified_tau_candidates] >= tr)):
-                    # became an one-to-one case
+                if ((local_tau_table[gt_id, qualified_tau_candidates] >= tp) and (local_sigma_table[gt_id, qualified_tau_candidates] >= tr)):
+                    #became an one-to-one case
                     global_accumulative_recall = global_accumulative_recall + 1.0
                     global_accumulative_precision = global_accumulative_precision + 1.0
                     local_accumulative_recall = local_accumulative_recall + 1.0
@@ -243,11 +193,10 @@ def one_to_many(local_sigma_table, local_tau_table, local_accumulative_recall,
 
     return local_accumulative_recall, local_accumulative_precision, global_accumulative_recall, global_accumulative_precision, gt_flag, det_flag
 
-
-def many_to_many(local_sigma_table, local_tau_table, local_accumulative_recall,
-                 local_accumulative_precision, global_accumulative_recall, global_accumulative_precision,
-                 gt_flag, det_flag):
-    for det_id in xrange(num_det):
+def many_to_one(local_sigma_table, local_tau_table, local_accumulative_recall,
+               local_accumulative_precision, global_accumulative_recall, global_accumulative_precision,
+               gt_flag, det_flag):
+    for det_id in range(num_det):
         # skip the following if the detection was matched
         if det_flag[0, det_id] > 0:
             continue
@@ -261,9 +210,8 @@ def many_to_many(local_sigma_table, local_tau_table, local_accumulative_recall,
             num_qualified_sigma_candidates = qualified_sigma_candidates[0].shape[0]
 
             if num_qualified_sigma_candidates == 1:
-                if ((local_tau_table[qualified_sigma_candidates, det_id] >= tp) and (
-                        local_sigma_table[qualified_sigma_candidates, det_id] >= tr)):
-                    # became an one-to-one case
+                if ((local_tau_table[qualified_sigma_candidates, det_id] >= tp) and (local_sigma_table[qualified_sigma_candidates, det_id] >= tr)):
+                    #became an one-to-one case
                     global_accumulative_recall = global_accumulative_recall + 1.0
                     global_accumulative_precision = global_accumulative_precision + 1.0
                     local_accumulative_recall = local_accumulative_recall + 1.0
@@ -282,8 +230,7 @@ def many_to_many(local_sigma_table, local_tau_table, local_accumulative_recall,
                 local_accumulative_precision = local_accumulative_precision + fsc_k
     return local_accumulative_recall, local_accumulative_precision, global_accumulative_recall, global_accumulative_precision, gt_flag, det_flag
 
-
-for idx in xrange(len(global_sigma)):
+for idx in range(len(global_sigma)):
     print(allInputs[idx])
     local_sigma_table = global_sigma[idx]
     local_tau_table = global_tau[idx]
@@ -302,55 +249,26 @@ for idx in xrange(len(global_sigma)):
     #######first check for one-to-one case##########
     local_accumulative_recall, local_accumulative_precision, global_accumulative_recall, global_accumulative_precision, \
     gt_flag, det_flag = one_to_one(local_sigma_table, local_tau_table,
-                                   local_accumulative_recall, local_accumulative_precision,
-                                   global_accumulative_recall, global_accumulative_precision,
-                                   gt_flag, det_flag)
+                                  local_accumulative_recall, local_accumulative_precision,
+                                  global_accumulative_recall, global_accumulative_precision,
+                                  gt_flag, det_flag)
 
     #######then check for one-to-many case##########
     local_accumulative_recall, local_accumulative_precision, global_accumulative_recall, global_accumulative_precision, \
     gt_flag, det_flag = one_to_many(local_sigma_table, local_tau_table,
+                                   local_accumulative_recall, local_accumulative_precision,
+                                   global_accumulative_recall, global_accumulative_precision,
+                                   gt_flag, det_flag)
+
+    #######then check for many-to-one case##########
+    local_accumulative_recall, local_accumulative_precision, global_accumulative_recall, global_accumulative_precision, \
+    gt_flag, det_flag = many_to_one(local_sigma_table, local_tau_table,
                                     local_accumulative_recall, local_accumulative_precision,
                                     global_accumulative_recall, global_accumulative_precision,
                                     gt_flag, det_flag)
 
-    #######then check for many-to-many case##########
-    local_accumulative_recall, local_accumulative_precision, global_accumulative_recall, global_accumulative_precision, \
-    gt_flag, det_flag = many_to_many(local_sigma_table, local_tau_table,
-                                     local_accumulative_recall, local_accumulative_precision,
-                                     global_accumulative_recall, global_accumulative_precision,
-                                     gt_flag, det_flag)
-    # for det_id in xrange(num_det):
-    #     # skip the following if the detection was matched
-    #     if det_flag[0, det_id] > 0:
-    #         continue
-    #
-    #     non_zero_in_tau = np.where(local_tau_table[:, det_id] > 0)
-    #     num_non_zero_in_tau = non_zero_in_tau[0].shape[0]
-    #
-    #     if num_non_zero_in_tau >= k:
-    #         ####search for all detections that overlaps with this groundtruth
-    #         qualified_sigma_candidates = np.where((local_sigma_table[:, det_id] >= tp) & (gt_flag[0, :] == 0))
-    #         num_qualified_sigma_candidates = qualified_sigma_candidates[0].shape[0]
-    #
-    #         if num_qualified_sigma_candidates == 1:
-    #             if ((local_tau_table[qualified_sigma_candidates, det_id] >= tp) and (local_sigma_table[qualified_sigma_candidates, det_id] >= tr)):
-    #                 #became an one-to-one case
-    #                 global_accumulative_recall = global_accumulative_recall + 1.0
-    #                 global_accumulative_precision = global_accumulative_precision + 1.0
-    #                 local_accumulative_recall = local_accumulative_recall + 1.0
-    #                 local_accumulative_precision = local_accumulative_precision + 1.0
-    #
-    #                 gt_flag[0, qualified_sigma_candidates] = 1
-    #                 det_flag[0, det_id] = 1
-    #         elif (np.sum(local_tau_table[qualified_sigma_candidates, det_id]) >= tp):
-    #             det_flag[0, det_id] = 1
-    #             gt_flag[0, qualified_sigma_candidates] = 1
-    #
-    #             global_accumulative_recall = global_accumulative_recall + num_qualified_sigma_candidates * fsc_k
-    #             global_accumulative_precision = global_accumulative_precision + fsc_k
-    #
-    #             local_accumulative_recall = local_accumulative_recall + num_qualified_sigma_candidates * fsc_k
-    #             local_accumulative_precision = local_accumulative_precision + fsc_k
+
+
 
     fid = open(fid_path, 'a+')
     try:
@@ -377,15 +295,12 @@ except ZeroDivisionError:
     precision = 0
 
 try:
-    f_score = 2 * precision * recall / (precision + recall)
+    f_score = 2*precision*recall/(precision+recall)
 except ZeroDivisionError:
     f_score = 0
 
 fid = open(fid_path, 'a')
-hmean = 2 * precision * recall / (precision + recall)
-temp = ('Precision:_%s_______/Recall:_%s/Hmean:_%s\n' % (str(precision), str(recall), str(hmean)))
-print(temp)
+temp = ('Precision:_%s_______/Recall:_%s\n' %(str(precision), str(recall)))
 fid.write(temp)
 fid.close()
-
-print('pb')
+print(temp)

@@ -8,7 +8,7 @@
 #Description: File with useful functions to use by the evaluation scripts in the RRC website.
 
 import json
-import sys
+import sys;
 sys.path.append('./')
 import zipfile
 import re
@@ -27,7 +27,7 @@ def load_zip_file_keys(file,fileNameRegExp=''):
     """
     try:
         archive=zipfile.ZipFile(file, mode='r', allowZip64=True)
-    except:
+    except :
         raise Exception('Error loading the ZIP archive.')
 
     pairs = []
@@ -87,7 +87,7 @@ def decode_utf8(raw):
     try:
         return raw.decode('utf-8-sig',errors = 'replace')
     except:
-        return None
+       return None
    
 def validate_lines_in_file(fileName,file_contents,CRLF=True,LTRB=True,withTranscription=False,withConfidence=False,imWidth=0,imHeight=0):
     """
@@ -389,9 +389,10 @@ def main_evaluation(p,default_evaluation_params_fn,validate_data_fn,evaluate_met
 
     resDict={'calculated':True,'Message':'','method':'{}','per_sample':'{}'}    
     try:
-        validate_data_fn(p['g'], p['s'], evalParams)
+        validate_data_fn(p['g'], p['s'], evalParams)  
         evalData = evaluate_method_fn(p['g'], p['s'], evalParams)
         resDict.update(evalData)
+        
     except Exception as e:
         resDict['Message']= str(e)
         resDict['calculated']=False
@@ -429,7 +430,7 @@ def main_evaluation(p,default_evaluation_params_fn,validate_data_fn,evaluate_met
 
     if show_result:
         sys.stdout.write("Calculated!")
-        sys.stdout.write(json.dumps(resDict['method']) + '\n')
+        sys.stdout.write(json.dumps(resDict['method']))
     
     return resDict
 

@@ -13,11 +13,11 @@ import scipy.io as scio
 import mmcv
 from mmcv.parallel import DataContainer as DC
 
-tt_root_dir = './data/total_text/'
+tt_root_dir = '../dataset/TotalText/'
 tt_train_data_dir = tt_root_dir + 'Images/Train/'
-tt_train_gt_dir = tt_root_dir + 'Groundtruth/Polygon/Train/'
+tt_train_gt_dir = tt_root_dir + 'Groundtruth/Text/mat_GT/Polygon/Train/'
 tt_test_data_dir = tt_root_dir + 'Images/Test/'
-tt_test_gt_dir = tt_root_dir + 'Groundtruth/Polygon/Test/'
+tt_test_gt_dir = tt_root_dir + 'Groundtruth/Text/mat_GT/Polygon/Test/'
 
 
 def get_img(img_path, read_type='pil'):

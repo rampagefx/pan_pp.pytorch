@@ -6,7 +6,7 @@ import mmcv
 project_root = '../../'
 
 pred_root = project_root + 'outputs/submit_ctw'
-gt_root = project_root + 'data/CTW1500/test/text_label_circum/'
+gt_root = '../../../dataset/CTW1500/data/ctw1500/test/text_label_circum/'
 
 
 def get_pred(path):
@@ -71,14 +71,14 @@ if __name__ == '__main__':
         cover = set()
         for pred_id, pred in enumerate(preds):
             pred = np.array(pred)
-            pred = pred.reshape(pred.shape[0] / 2, 2)[:, ::-1]
+            pred = pred.reshape(int(pred.shape[0] / 2), 2)[:, ::-1]
 
             pred_p = plg.Polygon(pred)
 
             flag = False
             for gt_id, gt in enumerate(gts):
                 gt = np.array(gt)
-                gt = gt.reshape(gt.shape[0] / 2, 2)
+                gt = gt.reshape(int(gt.shape[0] / 2), 2)
                 gt_p = plg.Polygon(gt)
 
                 union = get_union(pred_p, gt_p)

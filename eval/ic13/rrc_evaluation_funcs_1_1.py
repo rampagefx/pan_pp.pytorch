@@ -8,7 +8,7 @@
 #Description: File with useful functions to use by the evaluation scripts in the RRC website.
 
 import json
-import sys
+import sys;
 sys.path.append('./')
 import zipfile
 import re
@@ -27,7 +27,7 @@ def load_zip_file_keys(file,fileNameRegExp=''):
     """
     try:
         archive=zipfile.ZipFile(file, mode='r', allowZip64=True)
-    except:
+    except :
         raise Exception('Error loading the ZIP archive.')
 
     pairs = []
@@ -87,7 +87,7 @@ def decode_utf8(raw):
     try:
         return raw.decode('utf-8-sig',errors = 'replace')
     except:
-        return None
+       return None
    
 def validate_lines_in_file(fileName,file_contents,CRLF=True,LTRB=True,withTranscription=False,withConfidence=False,imWidth=0,imHeight=0):
     """
@@ -378,60 +378,59 @@ def main_evaluation(p,default_evaluation_params_fn,validate_data_fn,evaluate_met
     evaluate_method_fn: points to a function that evaluated the submission and return a Dictionary with the results
     """
     
-    # if (p == None):
-    #     p = dict([s[1:].split('=') for s in sys.argv[1:]])
-    #     if(len(sys.argv)<3):
-    #         print_help()
+    if (p == None):
+        p = dict([s[1:].split('=') for s in sys.argv[1:]])
+        if(len(sys.argv)<3):
+            print_help()
 
     evalParams = default_evaluation_params_fn()
-    # if 'p' in p.keys():
-    #     evalParams.update( p['p'] if isinstance(p['p'], dict) else json.loads(p['p']) )
+    if 'p' in p.keys():
+        evalParams.update( p['p'] if isinstance(p['p'], dict) else json.loads(p['p']) )
 
     resDict={'calculated':True,'Message':'','method':'{}','per_sample':'{}'}    
     try:
-        # validate_data_fn(p['g'], p['s'], evalParams)
-        # evalData = evaluate_method_fn(p['g'], p['s'], evalParams)
-        evalData = evaluate_method_fn(evalParams)
+        validate_data_fn(p['g'], p['s'], evalParams)  
+        evalData = evaluate_method_fn(p['g'], p['s'], evalParams)
         resDict.update(evalData)
+        
     except Exception as e:
-        print(e)
         resDict['Message']= str(e)
         resDict['calculated']=False
 
-    # if 'o' in p:
-    #     if not os.path.exists(p['o']):
-    #         os.makedirs(p['o'])
-    #
-    #     resultsOutputname = p['o'] + '/results.zip'
-    #     outZip = zipfile.ZipFile(resultsOutputname, mode='w', allowZip64=True)
-    #
-    #     del resDict['per_sample']
-    #     if 'output_items' in resDict.keys():
-    #         del resDict['output_items']
-    #
-    #     outZip.writestr('method.json',json.dumps(resDict))
+    if 'o' in p:
+        if not os.path.exists(p['o']):
+            os.makedirs(p['o'])
+
+        resultsOutputname = p['o'] + '/results.zip'
+        outZip = zipfile.ZipFile(resultsOutputname, mode='w', allowZip64=True)
+
+        del resDict['per_sample']
+        if 'output_items' in resDict.keys():
+            del resDict['output_items']
+
+        outZip.writestr('method.json',json.dumps(resDict))
         
-    # if not resDict['calculated']:
-    #     if show_result:
-    #         sys.stderr.write('Error!\n'+ resDict['Message']+'\n\n')
-    #     if 'o' in p:
-    #         outZip.close()
-    #     return resDict
-    #
-    # if 'o' in p:
-    #     if per_sample == True:
-    #         for k,v in evalData['per_sample'].items():
-    #             outZip.writestr( k + '.json',json.dumps(v))
-    #
-    #     if 'output_items' in evalData.keys():
-    #         for k, v in evalData['output_items'].items():
-    #             outZip.writestr( k,v)
-    #
-    #     outZip.close()
+    if not resDict['calculated']:
+        if show_result:
+            sys.stderr.write('Error!\n'+ resDict['Message']+'\n\n')
+        if 'o' in p:
+            outZip.close()
+        return resDict
+    
+    if 'o' in p:
+        if per_sample == True:
+            for k,v in evalData['per_sample'].items():
+                outZip.writestr( k + '.json',json.dumps(v)) 
+
+        if 'output_items' in evalData.keys():
+            for k, v in evalData['output_items'].items():
+                outZip.writestr( k,v) 
+
+        outZip.close()
 
     if show_result:
         sys.stdout.write("Calculated!")
-        sys.stdout.write(json.dumps(resDict['method']) + '\n')
+        sys.stdout.write(json.dumps(resDict['method']))
     
     return resDict
 

@@ -1,0 +1,1 @@
+cd ic13 && python script.py -g=gt.zip -s=../../outputs/submit_ic13.zip && cd ..
