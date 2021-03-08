@@ -252,11 +252,11 @@ class PAN_IC13(data.Dataset):
         self.read_type = read_type
 
         if split == 'train':
-            data_dirs = [ic15_train_data_dir]
-            gt_dirs = [ic15_train_gt_dir]
+            data_dirs = [ic13_train_data_dir]
+            gt_dirs = [ic13_train_gt_dir]
         elif split == 'test':
-            data_dirs = [ic15_test_data_dir]
-            gt_dirs = [ic15_test_gt_dir]
+            data_dirs = [ic13_test_data_dir]
+            gt_dirs = [ic13_test_gt_dir]
         else:
             print('Error: split must be train or test!')
             raise
