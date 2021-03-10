@@ -11,7 +11,8 @@ class DiceLoss(nn.Module):
         batch_size = input.size(0)
         input = torch.sigmoid(input)
 
-        input = input.contiguous().view(batch_size, -1)
+        # view 相当于 numpy 中的 reshape
+        input = input.contiguous().view(batch_size, -1)              # view 需要内存块连续，contiguous 使得 tensor 的内存在一起
         target = target.contiguous().view(batch_size, -1).float()
         mask = mask.contiguous().view(batch_size, -1).float()
 

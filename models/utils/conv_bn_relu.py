@@ -11,6 +11,7 @@ class Conv_BN_ReLU(nn.Module):
         self.bn = nn.BatchNorm2d(out_planes)
         self.relu = nn.ReLU(inplace=True)
 
+        # 自己编写的初始化方法
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels

@@ -23,11 +23,13 @@ class EmbLoss_v1(nn.Module):
         instance = instance.view(-1)
         emb = emb.view(self.feature_dim, -1)
 
+        # 统计共有多少个不同的 kernel 和每个位置对应几号 kernel
         unique_labels, unique_ids = torch.unique(instance_kernel, sorted=True, return_inverse=True)
         num_instance = unique_labels.size(0)
         if num_instance <= 1:
             return 0
 
+        # 计算属于同一 kernel 的 emb 平均值 
         emb_mean = emb.new_zeros((self.feature_dim, num_instance), dtype=torch.float32)
         for i, lb in enumerate(unique_labels):
             if lb == 0:
@@ -35,6 +37,7 @@ class EmbLoss_v1(nn.Module):
             ind_k = instance_kernel == lb
             emb_mean[:, i] = torch.mean(emb[:, ind_k], dim=1)
 
+        # 对每个 instance 计算 aggregation loss，每一维度对应一个 instance
         l_agg = emb.new_zeros(num_instance, dtype=torch.float32)  # bug
         for i, lb in enumerate(unique_labels):
             if lb == 0:
@@ -46,7 +49,10 @@ class EmbLoss_v1(nn.Module):
             l_agg[i] = torch.mean(torch.log(dist + 1.0))
         l_agg = torch.mean(l_agg[1:])
 
+        # 计算 discrimination loss，将 instance 之间分离
+        # 若 instance 只有 1 个（num_instance=2），loss 为 0
         if num_instance > 2:
+            # repeat 是在对应维度将数据重复复制几次，permute 是将维度重新排列
             emb_interleave = emb_mean.permute(1, 0).repeat(num_instance, 1)
             emb_band = emb_mean.permute(1, 0).repeat(1, num_instance).view(-1, self.feature_dim)
             # print(seg_band)
@@ -67,6 +73,7 @@ class EmbLoss_v1(nn.Module):
 
         l_agg = self.weights[0] * l_agg
         l_dis = self.weights[1] * l_dis
+        # 正则项，可能与聚类相关，待研究
         l_reg = torch.mean(torch.log(torch.norm(emb_mean, 2, 0) + 1.0)) * 0.001
         loss = l_agg + l_dis + l_reg
         return loss

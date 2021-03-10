@@ -20,11 +20,13 @@ class PAN(nn.Module):
         self.backbone = build_backbone(backbone)
 
         in_channels = neck.in_channels
+        # 通道减少
         self.reduce_layer1 = Conv_BN_ReLU(in_channels[0], 128)
         self.reduce_layer2 = Conv_BN_ReLU(in_channels[1], 128)
         self.reduce_layer3 = Conv_BN_ReLU(in_channels[2], 128)
         self.reduce_layer4 = Conv_BN_ReLU(in_channels[3], 128)
 
+        # 这里用了两层 fpem
         self.fpem1 = build_neck(neck)
         self.fpem2 = build_neck(neck)
 
@@ -46,6 +48,7 @@ class PAN(nn.Module):
         outputs = dict()
 
         if not self.training and cfg.report_speed:
+            # 为了同步 cuda 的操作，在 gpu 的操作结束之后再运行 time.time()
             torch.cuda.synchronize()
             start = time.time()
 
@@ -69,7 +72,7 @@ class PAN(nn.Module):
         f1_1, f2_1, f3_1, f4_1 = self.fpem1(f1, f2, f3, f4)
         f1_2, f2_2, f3_2, f4_2 = self.fpem2(f1_1, f2_1, f3_1, f4_1)
 
-        # FFM
+        # FFM: （这里可以加入新的操作）
         f1 = f1_1 + f1_2
         f2 = f2_1 + f2_2
         f3 = f3_1 + f3_2
@@ -95,6 +98,7 @@ class PAN(nn.Module):
                 det_head_time=time.time() - start
             ))
 
+        # 训练得到 loss，测试则得到最终结果
         if self.training:
             det_out = self._upsample(det_out, imgs.size())
             det_loss = self.det_head.loss(det_out, gt_texts, gt_kernels, training_masks, gt_instances, gt_bboxes)

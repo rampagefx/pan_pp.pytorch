@@ -61,7 +61,7 @@ class PA_Head(nn.Module):
         kernels = kernels.data.cpu().numpy()[0].astype(np.uint8)
         emb = emb.cpu().numpy()[0].astype(np.float32)
 
-        # pa
+        # pa，输入的 kernels 和 emb 都是三维的
         label = pa(kernels, emb)
 
         # image size
@@ -69,6 +69,7 @@ class PA_Head(nn.Module):
         img_size = img_meta['img_size'][0]
 
         label_num = np.max(label) + 1
+        # 根据图像尺寸进行 resize
         label = cv2.resize(label, (img_size[1], img_size[0]), interpolation=cv2.INTER_NEAREST)
         score = cv2.resize(score, (img_size[1], img_size[0]), interpolation=cv2.INTER_NEAREST)
 
@@ -81,6 +82,7 @@ class PA_Head(nn.Module):
         scale = (float(org_img_size[1]) / float(img_size[1]),
                  float(org_img_size[0]) / float(img_size[0]))
 
+        # 判断是否还需要 recognition(对于我们的实验无影响)
         with_rec = hasattr(cfg.model, 'recognition_head')
 
         if with_rec:
@@ -93,11 +95,13 @@ class PA_Head(nn.Module):
             ind = label == i
             points = np.array(np.where(ind)).transpose((1, 0))
 
+            # 小于一定大小的区域认为是误判，视作背景
             if points.shape[0] < cfg.test_cfg.min_area:
                 label[ind] = 0
                 continue
 
             score_i = np.mean(score[ind])
+            # 小于一定分数的区域认为是误判，视作背景
             if score_i < cfg.test_cfg.min_score:
                 label[ind] = 0
                 continue
@@ -108,10 +112,13 @@ class PA_Head(nn.Module):
                 bboxes_h[0, i] = (tl[0], tl[1], br[0], br[1])
                 instances[0].append(i)
 
+            # 识别区域分为矩形 "rect" 和多边形区域 "poly" 分别处理，得到对应的 bbox 位置
             if cfg.test_cfg.bbox_type == 'rect':
+                # minAreaRect 返回包含点集的最小矩形对象，boxPoints 返回这个矩形的四个边界点
                 rect = cv2.minAreaRect(points[:, ::-1])
                 bbox = cv2.boxPoints(rect) * scale
             elif cfg.test_cfg.bbox_type == 'poly':
+                # findContours 第一个返回值是一个 list，每个元素存储了可以表示一个轮廓的 ndarray
                 binary = np.zeros(label.shape, dtype='uint8')
                 binary[ind] = 1
                 contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)

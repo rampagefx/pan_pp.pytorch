@@ -274,7 +274,13 @@ class PAN_IC13(data.Dataset):
                 img_path = data_dir + img_name
                 img_paths.append(img_path)
 
-                gt_name = 'gt_' + img_name.split('.')[0] + '.txt'
+                if split == 'train':
+                    gt_name = img_name + '.txt'
+                elif split == 'test':
+                    gt_name = 'gt_' + img_name.split('.')[0] + '.txt'     
+                else:
+                    print('Error: split must be train or test!')
+                    raise 
                 gt_path = gt_dir + gt_name
                 gt_paths.append(gt_path)
 

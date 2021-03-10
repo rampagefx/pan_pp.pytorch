@@ -1,6 +1,7 @@
 import torch
 
 def ohem_single(score, gt_text, training_mask):
+    # 统计掩码内正例个数
     pos_num = int(torch.sum(gt_text > 0.5)) - int(torch.sum((gt_text > 0.5) & (training_mask <= 0.5)))
 
     if pos_num == 0:
@@ -9,6 +10,7 @@ def ohem_single(score, gt_text, training_mask):
         selected_mask = selected_mask.view(1, selected_mask.shape[0], selected_mask.shape[1]).float()
         return selected_mask
 
+    # 统计掩码内负例个数，并且将其控制在 3 倍正例以下
     neg_num = int(torch.sum(gt_text <= 0.5))
     neg_num = int(min(pos_num * 3, neg_num))
 
@@ -17,6 +19,7 @@ def ohem_single(score, gt_text, training_mask):
         selected_mask = selected_mask.view(1, selected_mask.shape[0], selected_mask.shape[1]).float()
         return selected_mask
 
+    # 将难例筛选出来，neg_num 又保证了不会过多
     neg_score = score[gt_text <= 0.5]
     neg_score_sorted, _ = torch.sort(-neg_score)
     threshold = -neg_score_sorted[neg_num - 1]
