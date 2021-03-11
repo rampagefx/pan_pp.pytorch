@@ -35,15 +35,15 @@ data = dict(
         type='PAN_IC13',
         split='train',
         is_transform=True,
-        img_size=736,
-        short_size=736,
+        img_size=640,
+        short_size=640,
         kernel_scale=0.5,
         read_type='cv2'
     ),
     test=dict(
         type='PAN_IC13',
         split='test',
-        short_size=736,
+        short_size=640,
         read_type='cv2'
     )
 )

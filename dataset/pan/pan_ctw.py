@@ -52,14 +52,14 @@ def get_ann(img, gt_path):
         words.append('???')
     return bboxes, words
 
-
+# 随机水平翻转
 def random_horizontal_flip(imgs):
     if random.random() < 0.5:
         for i in range(len(imgs)):
             imgs[i] = np.flip(imgs[i], axis=1).copy()
     return imgs
 
-
+# 随机角度翻转
 def random_rotate(imgs):
     max_angle = 10
     angle = random.random() * 2 * max_angle - max_angle
@@ -71,7 +71,7 @@ def random_rotate(imgs):
         imgs[i] = img_rotation
     return imgs
 
-
+# 尺度调整，长宽都是 32 的倍数
 def scale_aligned(img, scale):
     h, w = img.shape[0:2]
     h = int(h * scale + 0.5)
@@ -83,7 +83,7 @@ def scale_aligned(img, scale):
     img = cv2.resize(img, dsize=(w, h))
     return img
 
-
+# 图像随机尺度调整
 def random_scale(img, short_size=640):
     h, w = img.shape[0:2]
 
@@ -93,7 +93,7 @@ def random_scale(img, short_size=640):
     img = scale_aligned(img, scale)
     return img
 
-
+# 将图像的短边调整到最接近 short_size 的 32 倍数的长度
 def scale_aligned_short(img, short_size=640):
     h, w = img.shape[0:2]
     scale = short_size * 1.0 / min(h, w)
@@ -106,7 +106,7 @@ def scale_aligned_short(img, short_size=640):
     img = cv2.resize(img, dsize=(w, h))
     return img
 
-
+# 对图像进行 target_size 的随机裁剪，同时不足之处用常值 padding 填补
 def random_crop_padding(imgs, target_size):
     h, w = imgs[0].shape[0:2]
     t_w, t_h = target_size
@@ -134,6 +134,7 @@ def random_crop_padding(imgs, target_size):
 
     n_imgs = []
     for idx in range(len(imgs)):
+        # 分为彩色图和灰度图两种方式
         if len(imgs[idx].shape) == 3:
             s3_length = int(imgs[idx].shape[-1])
             img = imgs[idx][i:i + t_h, j:j + t_w, :]
@@ -145,18 +146,18 @@ def random_crop_padding(imgs, target_size):
         n_imgs.append(img_p)
     return n_imgs
 
-
+# 向量 a、b 的欧氏距离
 def dist(a, b):
     return np.linalg.norm((a - b), ord=2, axis=0)
 
-
+# bbox 的周长
 def perimeter(bbox):
     peri = 0.0
     for i in range(bbox.shape[0]):
         peri += dist(bbox[i], bbox[(i + 1) % bbox.shape[0]])
     return peri
 
-
+# 对于 bbox 进行放缩，考虑到可能是生成 kernel 相关 bbox 的方法
 def shrink(bboxes, rate, max_shr=20):
     rate = rate * rate
     shrinked_bboxes = []
@@ -198,6 +199,7 @@ class PAN_CTW(data.Dataset):
                  read_type='pil',
                  report_speed=False):
         self.split = split
+        # 表示是否要做污染
         self.is_transform = is_transform
 
         self.img_size = img_size if (img_size is None or isinstance(img_size, tuple)) else (img_size, img_size)
@@ -247,6 +249,7 @@ class PAN_CTW(data.Dataset):
     def __len__(self):
         return len(self.img_paths)
 
+    # 训练集数据的制备，每次只做一个图片
     def prepare_train_data(self, index):
         img_path = self.img_paths[index]
         gt_path = self.gt_paths[index]
@@ -260,6 +263,7 @@ class PAN_CTW(data.Dataset):
         if self.is_transform:
             img = random_scale(img, self.short_size)
 
+        # drawContours 其实就是将 bbox 包围的内容变成二值图
         gt_instance = np.zeros(img.shape[0:2], dtype='uint8')
         training_mask = np.ones(img.shape[0:2], dtype='uint8')
         if len(bboxes) > 0:
@@ -271,6 +275,7 @@ class PAN_CTW(data.Dataset):
                 if words[i] == '###':
                     cv2.drawContours(training_mask, [bboxes[i]], -1, 0, -1)
 
+        # 这里的到 kenerls 的 gt
         gt_kernels = []
         for rate in [self.kernel_scale]:
             gt_kernel = np.zeros(img.shape[0:2], dtype='uint8')
@@ -279,6 +284,7 @@ class PAN_CTW(data.Dataset):
                 cv2.drawContours(gt_kernel, [kernel_bboxes[i]], -1, 1, -1)
             gt_kernels.append(gt_kernel)
 
+        # 数据集污染
         if self.is_transform:
             imgs = [img, gt_instance, training_mask]
             imgs.extend(gt_kernels)
@@ -287,6 +293,7 @@ class PAN_CTW(data.Dataset):
             imgs = random_rotate(imgs)
             imgs = random_crop_padding(imgs, self.img_size)
             img, gt_instance, training_mask, gt_kernels = imgs[0], imgs[1], imgs[2], imgs[3:]
+
 
         gt_text = gt_instance.copy()
         gt_text[gt_text > 0] = 1

@@ -123,7 +123,7 @@ class ResultFormat(object):
             ly = min(values[1],values[3],values[5],values[7])
             rx = max(values[0],values[2],values[4],values[6])
             ry = max(values[1],values[3],values[5],values[7])
-            line = "%d,%d,%d,%d\n" % tuple(lx,ly,rx,ry)
+            line = "%d,%d,%d,%d\n" % (lx,ly,rx,ry)
             lines.append(line)
 
         file_name = 'res_%s.txt' % img_name
