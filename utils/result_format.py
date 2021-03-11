@@ -28,6 +28,8 @@ class ResultFormat(object):
             self._write_result_msra(img_name, outputs)
         elif 'IC13' in self.data_type:
             self._write_result_ic13(img_name, outputs)
+        elif 'SVT' in self.data_type:
+            self._write_result_svt(img_name, outputs)
 
     def _write_result_ic15(self, img_name, outputs):
         assert self.result_path.endswith('.zip'), 'Error: ic15 result should be a zip file!'
@@ -109,8 +111,34 @@ class ResultFormat(object):
                 f.write(line)
 
     def _write_result_ic13(self, img_name, outputs):
-        #TODO:
         assert self.result_path.endswith('.zip'), 'Error: ic13 result should be a zip file!'
+
+        tmp_folder = self.result_path.replace('.zip', '')
+
+        bboxes = outputs['bboxes']
+
+        lines = []
+        for i, bbox in enumerate(bboxes):
+            values = [int(v) for v in bbox]
+            lx = min(values[0],values[2],values[4],values[6])
+            ly = min(values[1],values[3],values[5],values[7])
+            rx = max(values[0],values[2],values[4],values[6])
+            ry = max(values[1],values[3],values[5],values[7])
+            line = "%d,%d,%d,%d\n" % (lx,ly,rx,ry)
+            lines.append(line)
+
+        file_name = 'res_%s.txt' % img_name
+        file_path = osp.join(tmp_folder, file_name)
+        with open(file_path, 'w') as f:
+            for line in lines:
+                f.write(line)
+
+        z = zipfile.ZipFile(self.result_path, 'a', zipfile.ZIP_DEFLATED)
+        z.write(file_path, file_name)
+        z.close()
+
+    def _write_result_svt(self, img_name, outputs):
+        assert self.result_path.endswith('.zip'), 'Error: svt result should be a zip file!'
 
         tmp_folder = self.result_path.replace('.zip', '')
 

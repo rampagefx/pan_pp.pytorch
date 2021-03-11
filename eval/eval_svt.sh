@@ -1,0 +1,1 @@
+cd svt && python script.py -g=gt.zip -s=../../outputs/submit_svt.zip && cd ..
