@@ -48,7 +48,7 @@ def get_ann(img, gt_path):
         else:
             words.append(word)
 
-        bbox = [int(gt[i]) for i in range(8)]
+        bbox = [int(float(gt[i])) for i in range(8)]
         bbox = np.array(bbox) / ([w * 1.0, h * 1.0] * 4)
         bboxes.append(bbox)
     return np.array(bboxes), words
