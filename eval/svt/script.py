@@ -32,8 +32,8 @@ def default_evaluation_params():
                 'MTYPE_OO_O':1.,
                 'MTYPE_OM_O':0.8,
                 'MTYPE_OM_M':1.,
-                'GT_SAMPLE_NAME_2_ID':'gt_img_([0-9]+).txt',
-                'DET_SAMPLE_NAME_2_ID':'res_img_([0-9]+).txt',
+                'GT_SAMPLE_NAME_2_ID':'gt_([0-9]+)_([0-9]+).txt',
+                'DET_SAMPLE_NAME_2_ID':'res_([0-9]+)_([0-9]+).txt',
                 'CRLF':False # Lines are delimited by Windows CRLF format
             }
 
